@@ -5,3 +5,9 @@ notifications:
     email: false
 before_script:
     - npm install -g grunt-cli
+addons:
+  sauce_connect: true
+env:
+  global:
+    - secure: tsQX1ceExoYHmYVtmmsM15JUUgpz3o5Tev9x4KCq0UFonppPuUJB+tgYjCYU1KQga832/BpfHGV2HNjn8f2u8Pd5Tsn5WUEfjUOgrKrk39O9wYJIqdxZ56ZZTcFBqdmAWKNDFHqLFsq79jd+Yoac9O8CLdNZoNpzExaW1WNiFW0=
+    - secure: HczMdt2ctxYIWn2dyTwnZ14QR/nqkv7tlvySmfo/r+4ZKmT4eVDpKwBA/9ApMu8eG3EofQPexx6wQMrZgdBzUkuE7qbJmPAFKMYe7q0stlg28tTC2CcS9UNqHKJ55kGu4pGIntz7LJqZCqynHX/XqIwBOzv2hiS1ZlICvuEpoLA=

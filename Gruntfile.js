@@ -1,4 +1,4 @@
-/*global module, require*/
+/*global module, require, process*/
 
 module.exports = function (grunt) {
     'use strict';
@@ -11,7 +11,43 @@ module.exports = function (grunt) {
         gruntConfig = {
             pkg: grunt.file.readJSON('package.json'),
             globalConfig: globalConfig
-        };
+        },
+        browsers = [
+          {
+            browserName: "internet explorer",
+            version: "11",
+            platform: "WIN8.1"
+          },
+          {
+            browserName: "chrome",
+            platform: "WIN8.1"
+          },
+          {
+            browserName: "firefox",
+            platform: "WIN8.1"
+          },
+          {
+            browserName: "safari",
+            platform: "mac"
+          },
+          {
+            browserName: "firefox",
+            platform: "mac"
+          },
+          {
+            browserName: "googlechrome",
+            platform: "mac"
+          }
+        ];
+
+    gruntConfig.connect = {
+      server: {
+        options: {
+          base: '',
+          port: 9999
+        }
+      }
+    };
 
     gruntConfig.jslint = {
         client: {
@@ -172,9 +208,22 @@ module.exports = function (grunt) {
         }
     };
 
+    gruntConfig['saucelabs-jasmine'] = {
+      all: {
+        options: {
+          urls: ['http://127.0.0.1:9999/_SpecRunner.html'],
+          tunnelTimeout: 5,
+          build: process.env.TRAVIS_JOB_ID,
+          concurrency: 3,
+          browsers: browsers
+        }
+      }
+    };
+
     grunt.initConfig(gruntConfig);
 
     grunt.loadNpmTasks('grunt-contrib-uglify');
+    grunt.loadNpmTasks('grunt-contrib-connect');
     grunt.loadNpmTasks('grunt-jslint');
     grunt.loadNpmTasks('grunt-contrib-jasmine');
     grunt.loadNpmTasks('grunt-autoprefixer');
@@ -183,9 +232,11 @@ module.exports = function (grunt) {
     grunt.loadNpmTasks('grunt-contrib-watch');
     grunt.loadNpmTasks('grunt-contrib-concat');
     grunt.loadNpmTasks('grunt-plato');
+    grunt.loadNpmTasks('grunt-saucelabs');
     grunt.loadNpmTasks('grunt-contrib-cssmin');
 
-    grunt.registerTask('test', ['jslint', 'jasmine:suite', 'csslint']);
+    grunt.registerTask('test', ['connect', 'jslint', 'jasmine:suite', 'csslint', 'saucelabs-jasmine']);
+    grunt.registerTask('sauce', ['connect', 'saucelabs-jasmine']);
     grunt.registerTask('js', ['jslint', 'jasmine:suite', 'uglify', 'concat']);
     grunt.registerTask('css', ['sass', 'autoprefixer', 'cssmin', 'csslint']);
     grunt.registerTask('default', ['js', 'css']);
