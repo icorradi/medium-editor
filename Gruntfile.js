@@ -56,8 +56,7 @@ module.exports = function (grunt) {
                 browser: true,
                 unparam: true,
                 todo: true,
-                debug: true,
-                white: true
+                debug: true
             }
         }
     };
@@ -134,7 +133,7 @@ module.exports = function (grunt) {
     gruntConfig.cssmin = {
         main: {
             options: {
-              noAdvanced: true
+                noAdvanced: true
             },
 
             expand: true,
@@ -145,7 +144,7 @@ module.exports = function (grunt) {
         },
         themes: {
             options: {
-              noAdvanced: true
+                noAdvanced: true
             },
 
             expand: true,
@@ -222,18 +221,13 @@ module.exports = function (grunt) {
 
     grunt.initConfig(gruntConfig);
 
-    grunt.loadNpmTasks('grunt-contrib-uglify');
-    grunt.loadNpmTasks('grunt-contrib-connect');
-    grunt.loadNpmTasks('grunt-jslint');
-    grunt.loadNpmTasks('grunt-contrib-jasmine');
-    grunt.loadNpmTasks('grunt-autoprefixer');
-    grunt.loadNpmTasks('grunt-contrib-csslint');
-    grunt.loadNpmTasks('grunt-sass');
-    grunt.loadNpmTasks('grunt-contrib-watch');
-    grunt.loadNpmTasks('grunt-contrib-concat');
-    grunt.loadNpmTasks('grunt-plato');
-    grunt.loadNpmTasks('grunt-saucelabs');
-    grunt.loadNpmTasks('grunt-contrib-cssmin');
+    require('time-grunt')(grunt);
+    require('load-grunt-tasks')(grunt, {
+        pattern: [
+            'grunt-*',
+            '!grunt-template-jasmine-istanbul'
+        ]
+    });
 
     grunt.registerTask('test', ['connect', 'jslint', 'jasmine:suite', 'csslint', 'saucelabs-jasmine']);
     grunt.registerTask('sauce', ['connect', 'saucelabs-jasmine']);

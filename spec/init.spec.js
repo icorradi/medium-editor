@@ -58,14 +58,15 @@ describe('Initialization TestCase', function () {
             expect(editor.elements).toEqual([element]);
         });
 
-        it('should always initalize elements as an Array', function() {
+        it('should always initalize elements as an Array', function () {
             var nodeList = document.querySelectorAll('span'),
                 node = document.querySelector('span'),
                 editor = new MediumEditor(nodeList);
 
             // nodeList is a NodeList, similar to an array but not of the same type
             expect(editor.elements.length).toEqual(nodeList.length);
-            expect(typeof editor.elements).not.toBe(typeof nodeList);
+            expect(typeof nodeList.forEach).toBe('undefined');
+            expect(typeof editor.elements.forEach).toBe('function');
             editor.deactivate();
 
             editor = new MediumEditor('span');
@@ -98,6 +99,7 @@ describe('Initialization TestCase', function () {
         it('should have a default set of options', function () {
             var defaultOptions = {
                 anchorInputPlaceholder: 'Paste or type a link',
+                anchorInputCheckboxLabel: 'Open in new window',
                 delay: 0,
                 diffLeft: 0,
                 diffTop: -10,
@@ -137,6 +139,7 @@ describe('Initialization TestCase', function () {
         it('should accept custom options values', function () {
             var options = {
                 anchorInputPlaceholder: 'test',
+                anchorInputCheckboxLabel: 'new window?',
                 diffLeft: 10,
                 diffTop: 5,
                 firstHeader: 'h2',

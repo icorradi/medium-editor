@@ -6,9 +6,8 @@ function MediumEditor(elements, options) {
 
 if (typeof module === 'object') {
     module.exports = MediumEditor;
-}
 // AMD support
-else if (typeof define === 'function' && define.amd) {
+} else if (typeof define === 'function' && define.amd) {
     define(function () {
         'use strict';
         return MediumEditor;
@@ -32,7 +31,7 @@ else if (typeof define === 'function' && define.amd) {
     }
 
     // https://github.com/jashkenas/underscore
-    var now = Date.now || function() {
+    var now = Date.now || function () {
         return new Date().getTime();
     };
 
@@ -50,7 +49,7 @@ else if (typeof define === 'function' && define.amd) {
             wait = THROTTLE_INTERVAL;
         }
 
-        later = function() {
+        later = function () {
             previous = now();
             timeout = null;
             result = func.apply(context, args);
@@ -59,7 +58,7 @@ else if (typeof define === 'function' && define.amd) {
             }
         };
 
-        return function() {
+        return function () {
             var currNow = now(),
                 remaining = wait - (currNow - previous);
             context = this;
@@ -80,14 +79,14 @@ else if (typeof define === 'function' && define.amd) {
     }
 
     function isDescendant(parent, child) {
-         var node = child.parentNode;
-         while (node !== null) {
-             if (node === parent) {
-                 return true;
-             }
-             node = node.parentNode;
-         }
-         return false;
+        var node = child.parentNode;
+        while (node !== null) {
+            if (node === parent) {
+                return true;
+            }
+            node = node.parentNode;
+        }
+        return false;
     }
 
     // Find the next node in the DOM tree that represents any text that is being
@@ -109,7 +108,7 @@ else if (typeof define === 'function' && define.amd) {
             if (nextNode === targetNode) {
                 pastTarget = true;
             } else if (pastTarget) {
-                if (nextNode.nodeType === 3 && nextNode.nodeValue.length > 0) {
+                if (nextNode.nodeType === 3 && nextNode.nodeValue && nextNode.nodeValue.length > 0) {
                     break;
                 }
             }
@@ -181,6 +180,36 @@ else if (typeof define === 'function' && define.amd) {
         return html;
     }
 
+    /**
+     *  Find the caret position within an element irrespective of any inline tags it may contain.
+     *
+     *  @param {DOMElement} An element containing the cursor to find offsets relative to.
+     *  @param {Range} A Range representing cursor position. Will window.getSelection if none is passed.
+     *  @return {Object} 'left' and 'right' attributes contain offsets from begining and end of Element
+     */
+    function getCaretOffsets(element, range) {
+        var preCaretRange, postCaretRange;
+
+        if (!range) {
+            range = window.getSelection().getRangeAt(0);
+        }
+
+        preCaretRange = range.cloneRange();
+        postCaretRange = range.cloneRange();
+
+        preCaretRange.selectNodeContents(element);
+        preCaretRange.setEnd(range.endContainer, range.endOffset);
+
+        postCaretRange.selectNodeContents(element);
+        postCaretRange.setStart(range.endContainer, range.endOffset);
+
+        return {
+            left: preCaretRange.toString().length,
+            right: postCaretRange.toString().length
+        };
+    }
+
+
     // https://github.com/jashkenas/underscore
     function isElement(obj) {
         return !!(obj && obj.nodeType === 1);
@@ -223,6 +252,7 @@ else if (typeof define === 'function' && define.amd) {
         defaults: {
             allowMultiParagraphSelection: true,
             anchorInputPlaceholder: 'Paste or type a link',
+            anchorInputCheckboxLabel: 'Open in new window',
             anchorPreviewHideDelay: 500,
             buttons: ['bold', 'italic', 'underline', 'anchor', 'header1', 'header2', 'quote'],
             buttonLabels: false,
@@ -290,25 +320,25 @@ else if (typeof define === 'function' && define.amd) {
                 .bindPaste()
                 .setPlaceholders()
                 .bindElementActions()
-                .bindWindowActions()
-                .passInstance();
+                .bindWindowActions();
+                //.passInstance();
         },
 
-        on: function(target, event, listener, useCapture) {
+        on: function (target, event, listener, useCapture) {
             target.addEventListener(event, listener, useCapture);
             this.events.push([target, event, listener, useCapture]);
         },
 
-        off: function(target, event, listener, useCapture) {
+        off: function (target, event, listener, useCapture) {
             var index = this.indexOfListener(target, event, listener, useCapture),
                 e;
-            if(index !== -1) {
+            if (index !== -1) {
                 e = this.events.splice(index, 1)[0];
                 e[0].removeEventListener(e[1], e[2], e[3]);
             }
         },
 
-        indexOfListener: function(target, event, listener, useCapture) {
+        indexOfListener: function (target, event, listener, useCapture) {
             var i, n, item;
             for (i = 0, n = this.events.length; i < n; i = i + 1) {
                 item = this.events[i];
@@ -319,30 +349,30 @@ else if (typeof define === 'function' && define.amd) {
             return -1;
         },
 
-        delay: function(fn) {
+        delay: function (fn) {
             var self = this;
-            setTimeout(function() {
+            setTimeout(function () {
                 if (self.isActive) {
                     fn();
                 }
             }, this.options.delay);
         },
 
-        removeAllEvents: function() {
+        removeAllEvents: function () {
             var e = this.events.pop();
-            while(e) {
+            while (e) {
                 e[0].removeEventListener(e[1], e[2], e[3]);
                 e = this.events.pop();
             }
         },
 
-        initThrottledMethods: function() {
+        initThrottledMethods: function () {
             var self = this;
 
             // handleResize is throttled because:
             // - It will be called when the browser is resizing, which can fire many times very quickly
             // - For some event (like resize) a slight lag in UI responsiveness is OK and provides performance benefits
-            this.handleResize = throttle(function() {
+            this.handleResize = throttle(function () {
                 if (self.isActive) {
                     self.positionToolbarIfShown();
                 }
@@ -352,7 +382,7 @@ else if (typeof define === 'function' && define.amd) {
             // - This method could be called many times due to the type of event handlers that are calling it
             // - We want a slight delay so that other events in the stack can run, some of which may
             //   prevent the toolbar from being hidden (via this.keepToolbarAlive).
-            this.handleBlur = throttle(function() {
+            this.handleBlur = throttle(function () {
                 if (self.isActive && !self.keepToolbarAlive) {
                     self.hideToolbarActions();
                 }
@@ -381,7 +411,9 @@ else if (typeof define === 'function' && define.amd) {
             }
             // Init toolbar
             if (addToolbar) {
-                this.initToolbar()
+                this.passInstance()
+                    .callExtensions('init')
+                    .initToolbar()
                     .bindButtons()
                     .bindAnchorForm()
                     .bindAnchorPreview();
@@ -405,15 +437,15 @@ else if (typeof define === 'function' && define.amd) {
             this.elements = Array.prototype.slice.apply(selector);
         },
 
-        bindBlur: function(i) {
+        bindBlur: function (i) {
             var self = this,
-                blurFunction = function(e){
+                blurFunction = function (e) {
                     // If it's not part of the editor, or the toolbar
-                    if ( e.target !== self.toolbar
-                        && e.target !== self.elements[0]
-                        && !isDescendant(self.elements[0], e.target)
-                        && !isDescendant(self.toolbar, e.target)
-                        && !isDescendant(self.anchorPreview, e.target)) {
+                    if (e.target !== self.toolbar
+                            && e.target !== self.elements[0]
+                            && !isDescendant(self.elements[0], e.target)
+                            && !isDescendant(self.toolbar, e.target)
+                            && !isDescendant(self.anchorPreview, e.target)) {
 
                         // Activate the placeholder
                         if (!self.options.disablePlaceholders) {
@@ -432,16 +464,16 @@ else if (typeof define === 'function' && define.amd) {
             return this;
         },
 
-        bindClick: function(i) {
+        bindClick: function (i) {
             var self = this;
 
-            this.on(this.elements[i], 'click', function(){
+            this.on(this.elements[i], 'click', function () {
                 if (!self.options.disablePlaceholders) {
                     // Remove placeholder
                     this.classList.remove('medium-editor-placeholder');
                 }
 
-                if ( self.options.staticToolbar ) {
+                if (self.options.staticToolbar) {
                     self.setToolbarPosition();
                 }
             });
@@ -453,7 +485,7 @@ else if (typeof define === 'function' && define.amd) {
          * This handles blur and keypress events on elements
          * Including Placeholders, and tooldbar hiding on blur
          */
-        bindElementActions: function() {
+        bindElementActions: function () {
             var i;
 
             for (i = 0; i < this.elements.length; i += 1) {
@@ -465,7 +497,7 @@ else if (typeof define === 'function' && define.amd) {
 
                 // Bind the return and tab keypress events
                 this.bindReturn(i)
-                    .bindTab(i)
+                    .bindKeydown(i)
                     .bindBlur(i)
                     .bindClick(i);
             }
@@ -527,6 +559,7 @@ else if (typeof define === 'function' && define.amd) {
                     }
                 }
             }
+            return this;
         },
 
         /**
@@ -580,9 +613,13 @@ else if (typeof define === 'function' && define.amd) {
                     editorElement = self.getSelectionElement();
 
                     if (!(self.options.disableReturn || editorElement.getAttribute('data-disable-return')) &&
-                        tagName !== 'li' && !self.isListItemChild(node)) {
+                            tagName !== 'li' && !self.isListItemChild(node)) {
                         if (!e.shiftKey) {
-                            self.options.ownerDocument.execCommand('formatBlock', false, 'p');
+
+                            // paragraph creation should not be forced within a header tag
+                            if (!/h\d/.test(tagName)) {
+                                self.options.ownerDocument.execCommand('formatBlock', false, 'p');
+                            }
                         }
                         if (tagName === 'a') {
                             self.options.ownerDocument.execCommand('unlink', false, null);
@@ -627,9 +664,10 @@ else if (typeof define === 'function' && define.amd) {
             return this;
         },
 
-        bindTab: function (index) {
+        bindKeydown: function (index) {
             var self = this;
             this.on(this.elements[index], 'keydown', function (e) {
+
                 if (e.which === 9) {
                     // Override tab only for pre nodes
                     var tag = getSelectionStart.call(self).tagName.toLowerCase();
@@ -649,9 +687,75 @@ else if (typeof define === 'function' && define.amd) {
                             self.options.ownerDocument.execCommand('indent', e);
                         }
                     }
+                } else if (e.which === 8 || e.which === 46 || e.which === 13) {
+
+                    // Bind keys which can create or destroy a block element: backspace, delete, return
+                    self.onBlockModifier(e);
+
                 }
             });
             return this;
+        },
+
+        onBlockModifier: function (e) {
+
+            var range, sel, p, node = getSelectionStart.call(this),
+                tagName = node.tagName.toLowerCase(),
+                isEmpty = /^(\s+|<br\/?>)?$/i,
+                isHeader = /h\d/i;
+
+            // backspace or return
+            if ((e.which === 8 || e.which === 13)
+                    && node.previousElementSibling
+                    // in a header
+                    && isHeader.test(tagName)
+                    // at the very end of the block
+                    && getCaretOffsets(node).left === 0) {
+                if (e.which === 8 && isEmpty.test(node.previousElementSibling.innerHTML)) {
+                    // backspacing the begining of a header into an empty previous element will
+                    // change the tagName of the current node to prevent one
+                    // instead delete previous node and cancel the event.
+                    node.previousElementSibling.parentNode.removeChild(node.previousElementSibling);
+                    e.preventDefault();
+                } else if (e.which === 13) {
+                    // hitting return in the begining of a header will create empty header elements before the current one
+                    // instead, make "<p><br></p>" element, which are what happens if you hit return in an empty paragraph
+                    p = this.options.ownerDocument.createElement('p');
+                    p.innerHTML = '<br>';
+                    node.previousElementSibling.parentNode.insertBefore(p, node);
+                    e.preventDefault();
+                }
+
+            // delete
+            } else if (e.which === 46
+                        && node.nextElementSibling
+                        && node.previousElementSibling
+                        // not in a header
+                        && !isHeader.test(tagName)
+                        // in an empty tag
+                        && isEmpty.test(node.innerHTML)
+                        // when the next tag *is* a header
+                        && isHeader.test(node.nextElementSibling.tagName)) {
+                // hitting delete in an empty element preceding a header, ex:
+                //  <p>[CURSOR]</p><h1>Header</h1>
+                // Will cause the h1 to become a paragraph.
+                // Instead, delete the paragraph node and move the cursor to the begining of the h1
+
+                // remove node and move cursor to start of header
+                range = document.createRange();
+                sel = window.getSelection();
+
+                range.setStart(node.nextElementSibling, 0);
+                range.collapse(true);
+
+                sel.removeAllRanges();
+                sel.addRange(range);
+
+                node.previousElementSibling.parentNode.removeChild(node);
+
+                e.preventDefault();
+            }
+
         },
 
         buttonTemplate: function (btnType) {
@@ -660,7 +764,7 @@ else if (typeof define === 'function' && define.amd) {
                     'bold': '<button class="medium-editor-action medium-editor-action-bold" data-action="bold" data-element="b" aria-label="bold">' + buttonLabels.bold + '</button>',
                     'italic': '<button class="medium-editor-action medium-editor-action-italic" data-action="italic" data-element="i" aria-label="italic">' + buttonLabels.italic + '</button>',
                     'underline': '<button class="medium-editor-action medium-editor-action-underline" data-action="underline" data-element="u" aria-label="underline">' + buttonLabels.underline + '</button>',
-                    'strikethrough': '<button class="medium-editor-action medium-editor-action-strikethrough" data-action="strikethrough" data-element="strike" aria-label="strike through">' + buttonLabels.strikethrough +'</button>',
+                    'strikethrough': '<button class="medium-editor-action medium-editor-action-strikethrough" data-action="strikethrough" data-element="strike" aria-label="strike through">' + buttonLabels.strikethrough + '</button>',
                     'superscript': '<button class="medium-editor-action medium-editor-action-superscript" data-action="superscript" data-element="sup" aria-label="superscript">' + buttonLabels.superscript + '</button>',
                     'subscript': '<button class="medium-editor-action medium-editor-action-subscript" data-action="subscript" data-element="sub" aria-label="subscript">' + buttonLabels.subscript + '</button>',
                     'anchor': '<button class="medium-editor-action medium-editor-action-anchor" data-action="anchor" data-element="a" aria-label="link">' + buttonLabels.anchor + '</button>',
@@ -746,13 +850,14 @@ else if (typeof define === 'function' && define.amd) {
                 return this;
             }
             this.toolbar = this.createToolbar();
+            this.addExtensionForms();
             this.keepToolbarAlive = false;
             this.toolbarActions = this.toolbar.querySelector('.medium-editor-toolbar-actions');
             this.anchorPreview = this.createAnchorPreview();
 
             if (!this.options.disableAnchorForm) {
-                this.anchorForm = this.toolbar.querySelector('.medium-editor-toolbar-form-anchor');
-                this.anchorInput = this.anchorForm.querySelector('input.medium-editor-toolbar-anchor-input');
+                this.anchorForm = this.toolbar.querySelector('.medium-editor-toolbar-form');
+                this.anchorInput = this.anchorForm.querySelector('input.medium-editor-toolbar-input');
                 this.anchorTarget = this.anchorForm.querySelector('input.medium-editor-toolbar-anchor-target');
                 this.anchorButton = this.anchorForm.querySelector('input.medium-editor-toolbar-anchor-button');
             }
@@ -764,7 +869,7 @@ else if (typeof define === 'function' && define.amd) {
             toolbar.id = 'medium-editor-toolbar-' + this.id;
             toolbar.className = 'medium-editor-toolbar';
 
-            if ( this.options.staticToolbar ) {
+            if (this.options.staticToolbar) {
                 toolbar.className += " static-toolbar";
             } else {
                 toolbar.className += " stalker-toolbar";
@@ -794,6 +899,9 @@ else if (typeof define === 'function' && define.amd) {
                 if (this.options.extensions.hasOwnProperty(btns[i])) {
                     ext = this.options.extensions[btns[i]];
                     btn = ext.getButton !== undefined ? ext.getButton(this) : null;
+                    if (ext.hasForm) {
+                        btn.setAttribute('data-form', 'medium-editor-toolbar-form-' + btns[i] + '-' + this.id);
+                    }
                 } else {
                     btn = this.buttonTemplate(btns[i]);
                 }
@@ -812,6 +920,30 @@ else if (typeof define === 'function' && define.amd) {
             return ul;
         },
 
+        addExtensionForms: function () {
+            var extensions = this.options.extensions,
+                ext,
+                name,
+                form,
+                id;
+
+            for (name in extensions) {
+                if (extensions.hasOwnProperty(name)) {
+                    ext = extensions[name];
+                    if (ext.hasForm) {
+                        form = ext.getForm !== undefined ? ext.getForm() : null;
+                    }
+                    if (form) {
+                        id = 'medium-editor-toolbar-form-' + name + '-' + this.id;
+                        form.className = 'medium-editor-toolbar-form';
+                        form.id = id;
+                        ext.getForm().id = id;
+                        this.toolbar.appendChild(form);
+                    }
+                }
+            }
+        },
+
         toolbarFormAnchor: function () {
             var anchor = this.options.ownerDocument.createElement('div'),
                 input = this.options.ownerDocument.createElement('input'),
@@ -823,21 +955,21 @@ else if (typeof define === 'function' && define.amd) {
                 save = this.options.ownerDocument.createElement('a');
 
             close.setAttribute('href', '#');
-            close.className = 'medium-editor-toobar-anchor-close';
+            close.className = 'medium-editor-toobar-close';
             close.innerHTML = '&times;';
 
             save.setAttribute('href', '#');
-            save.className = 'medium-editor-toobar-anchor-save';
+            save.className = 'medium-editor-toobar-save';
             save.innerHTML = '&#10003;';
 
             input.setAttribute('type', 'text');
-            input.className = 'medium-editor-toolbar-anchor-input';
+            input.className = 'medium-editor-toolbar-input';
             input.setAttribute('placeholder', this.options.anchorInputPlaceholder);
 
 
             target.setAttribute('type', 'checkbox');
             target.className = 'medium-editor-toolbar-anchor-target';
-            target_label.innerHTML = "Open in New Window?";
+            target_label.innerHTML = this.options.anchorInputCheckboxLabel;
             target_label.insertBefore(target, target_label.firstChild);
 
             button.setAttribute('type', 'checkbox');
@@ -846,7 +978,7 @@ else if (typeof define === 'function' && define.amd) {
             button_label.insertBefore(button, button_label.firstChild);
 
 
-            anchor.className = 'medium-editor-toolbar-form-anchor';
+            anchor.className = 'medium-editor-toolbar-form';
             anchor.id = 'medium-editor-toolbar-form-anchor-' + this.id;
             anchor.appendChild(input);
 
@@ -887,11 +1019,11 @@ else if (typeof define === 'function' && define.amd) {
             return this;
         },
 
-        stopSelectionUpdates: function() {
+        stopSelectionUpdates: function () {
             this.preventSelectionUpdates = true;
         },
 
-        startSelectionUpdates: function() {
+        startSelectionUpdates: function () {
             this.preventSelectionUpdates = false;
         },
 
@@ -900,15 +1032,15 @@ else if (typeof define === 'function' && define.amd) {
                 selectionElement;
 
             if (!this.preventSelectionUpdates &&
-                this.keepToolbarAlive !== true &&
-                !this.options.disableToolbar) {
+                    this.keepToolbarAlive !== true &&
+                    !this.options.disableToolbar) {
 
                 newSelection = this.options.contentWindow.getSelection();
                 if ((!this.options.updateOnEmptySelection && newSelection.toString().trim() === '') ||
-                    (this.options.allowMultiParagraphSelection === false && this.hasMultiParagraphs()) ||
-                    this.selectionInContentEditableFalse()) {
+                        (this.options.allowMultiParagraphSelection === false && this.hasMultiParagraphs()) ||
+                        this.selectionInContentEditableFalse()) {
 
-                    if ( !this.options.staticToolbar ) {
+                    if (!this.options.staticToolbar) {
                         this.hideToolbarActions();
                     } else if (this.anchorForm && this.anchorForm.style.display === 'block') {
                         this.setToolbarButtonStates();
@@ -918,7 +1050,7 @@ else if (typeof define === 'function' && define.amd) {
                 } else {
                     selectionElement = this.getSelectionElement();
                     if (!selectionElement || selectionElement.getAttribute('data-disable-toolbar')) {
-                        if ( !this.options.staticToolbar ) {
+                        if (!this.options.staticToolbar) {
                             this.hideToolbarActions();
                         }
                     } else {
@@ -954,30 +1086,29 @@ else if (typeof define === 'function' && define.amd) {
             this.selection = newSelection;
             this.selectionRange = this.selection.getRangeAt(0);
 
-            /* 
+            /*
             * In firefox, there are cases (ie doubleclick of a word) where the selectionRange start
             * will be at the very end of an element.  In other browsers, the selectionRange start
             * would instead be at the very beginning of an element that actually has content.
             * example:
             *   <span>foo</span><span>bar</span>
-            * 
+            *
             * If the text 'bar' is selected, most browsers will have the selectionRange start at the beginning
             * of the 'bar' span.  However, there are cases where firefox will have the selectionRange start
             * at the end of the 'foo' span.  The contenteditable behavior will be ok, but if there are any
             * properties on the 'bar' span, they won't be reflected accurately in the toolbar
             * (ie 'Bold' button wouldn't be active)
-            * 
+            *
             * So, for cases where the selectionRange start is at the end of an element/node, find the next
             * adjacent text node that actually has content in it, and move the selectionRange start there.
             */
-            if (
-                this.options.standardizeSelectionStart &&
-                this.selectionRange.startOffset === this.selectionRange.startContainer.nodeValue.length
-                ) {
+            if (this.options.standardizeSelectionStart &&
+                    this.selectionRange.startContainer.nodeValue &&
+                    (this.selectionRange.startOffset === this.selectionRange.startContainer.nodeValue.length)) {
                 adjacentNode = findAdjacentTextNodeWithContent(this.getSelectionElement(), this.selectionRange.startContainer, this.options.ownerDocument);
                 if (adjacentNode) {
                     offset = 0;
-                    while(adjacentNode.nodeValue.substr(offset, 1).trim().length === 0) {
+                    while (adjacentNode.nodeValue.substr(offset, 1).trim().length === 0) {
                         offset = offset + 1;
                     }
                     newRange = this.options.ownerDocument.createRange();
@@ -998,12 +1129,12 @@ else if (typeof define === 'function' && define.amd) {
                 }
             }
 
-            if ( !this.options.staticToolbar ) {
+            if (!this.options.staticToolbar) {
                 this.hideToolbarActions();
             }
         },
 
-        findMatchingSelectionParent: function(testElementFunction) {
+        findMatchingSelectionParent: function (testElementFunction) {
             var selection = this.options.contentWindow.getSelection(), range, current;
 
             if (selection.rangeCount === 0) {
@@ -1014,31 +1145,30 @@ else if (typeof define === 'function' && define.amd) {
             current = range.commonAncestorContainer;
 
             do {
-              if (current.nodeType === 1){
-                if ( testElementFunction(current) )
-                {
-                    return current;
+                if (current.nodeType === 1) {
+                    if (testElementFunction(current)) {
+                        return current;
+                    }
+                    // do not traverse upwards past the nearest containing editor
+                    if (current.getAttribute('data-medium-element')) {
+                        return false;
+                    }
                 }
-                // do not traverse upwards past the nearest containing editor
-                if (current.getAttribute('data-medium-element')) {
-                    return false;
-                }
-              }
 
-              current = current.parentNode;
+                current = current.parentNode;
             } while (current);
 
             return false;
         },
 
         getSelectionElement: function () {
-            return this.findMatchingSelectionParent(function(el) {
+            return this.findMatchingSelectionParent(function (el) {
                 return el.getAttribute('data-medium-element');
             });
         },
 
         selectionInContentEditableFalse: function () {
-            return this.findMatchingSelectionParent(function(el) {
+            return this.findMatchingSelectionParent(function (el) {
                 return (el && el.nodeName !== '#text' && el.getAttribute('contenteditable') === 'false');
             });
         },
@@ -1046,38 +1176,38 @@ else if (typeof define === 'function' && define.amd) {
         setToolbarPosition: function () {
             // document.documentElement for IE 9
             var scrollTop = (this.options.ownerDocument.documentElement && this.options.ownerDocument.documentElement.scrollTop) || this.options.ownerDocument.body.scrollTop,
-            container = this.elements[0],
-            containerRect = container.getBoundingClientRect(),
-            containerTop = containerRect.top + scrollTop,
-            buttonHeight = 50,
-            selection = this.options.contentWindow.getSelection(),
-            range,
-            boundary,
-            middleBoundary,
-            defaultLeft = (this.options.diffLeft) - (this.toolbar.offsetWidth / 2),
-            halfOffsetWidth = this.toolbar.offsetWidth / 2;
+                container = this.elements[0],
+                containerRect = container.getBoundingClientRect(),
+                containerTop = containerRect.top + scrollTop,
+                buttonHeight = 50,
+                selection = this.options.contentWindow.getSelection(),
+                range,
+                boundary,
+                middleBoundary,
+                defaultLeft = (this.options.diffLeft) - (this.toolbar.offsetWidth / 2),
+                halfOffsetWidth = this.toolbar.offsetWidth / 2,
+                containerCenter = (containerRect.left + (containerRect.width / 2));
 
-            if ( selection.focusNode === null ) {
+            if (selection.focusNode === null) {
                 return this;
             }
 
             this.showToolbar();
 
-            if ( this.options.staticToolbar ) {
+            if (this.options.staticToolbar) {
 
-                if ( this.options.stickyToolbar ) {
+                if (this.options.stickyToolbar) {
 
                     // If it's beyond the height of the editor, position it at the bottom of the editor
-                    if ( scrollTop > (containerTop + this.elements[0].offsetHeight - this.toolbar.offsetHeight)) {
+                    if (scrollTop > (containerTop + this.elements[0].offsetHeight - this.toolbar.offsetHeight)) {
                         this.toolbar.style.top = (containerTop + this.elements[0].offsetHeight) + 'px';
-                    }
+
                     // Stick the toolbar to the top of the window
-                    else if ( scrollTop > (containerTop - this.toolbar.offsetHeight) ) {
+                    } else if (scrollTop > (containerTop - this.toolbar.offsetHeight)) {
                         this.toolbar.classList.add('sticky-toolbar');
                         this.toolbar.style.top = "0px";
-                    }
                     // Normal static toolbar position
-                    else {
+                    } else {
                         this.toolbar.classList.remove('sticky-toolbar');
                         this.toolbar.style.top = containerTop - this.toolbar.offsetHeight + "px";
                     }
@@ -1086,7 +1216,17 @@ else if (typeof define === 'function' && define.amd) {
                     this.toolbar.style.top = containerTop - this.toolbar.offsetHeight + "px";
                 }
 
-                this.toolbar.style.left = containerRect.left + "px";
+                if (this.options.toolbarAlign) {
+                    if (this.options.toolbarAlign === 'left') {
+                        this.toolbar.style.left = containerRect.left + "px";
+                    } else if (this.options.toolbarAlign === 'center') {
+                        this.toolbar.style.left = (containerCenter - halfOffsetWidth) + "px";
+                    } else {
+                        this.toolbar.style.left = (containerRect.right - this.toolbar.offsetWidth) + "px";
+                    }
+                } else {
+                    this.toolbar.style.left = (containerCenter - halfOffsetWidth) + "px";
+                }
 
             } else if (!selection.isCollapsed) {
                 range = selection.getRangeAt(0);
@@ -1166,6 +1306,11 @@ else if (typeof define === 'function' && define.amd) {
                     if (this.hasAttribute('data-action')) {
                         self.execAction(this.getAttribute('data-action'), e);
                     }
+                    // Allows extension buttons to show a form
+                    // TO DO: Improve this
+                    if (this.hasAttribute('data-form')) {
+                        self.showForm(this.getAttribute('data-form'), e);
+                    }
                 };
             for (i = 0; i < buttons.length; i += 1) {
                 this.on(buttons[i], 'click', triggerAction);
@@ -1197,6 +1342,27 @@ else if (typeof define === 'function' && define.amd) {
                 this.options.ownerDocument.execCommand(action, false, null);
                 this.setToolbarPosition();
             }
+        },
+
+        // Method to show an extension's form
+        // TO DO: Improve this
+        showForm: function (formId, e) {
+            this.toolbarActions.style.display = 'none';
+            this.saveSelection();
+            var form = document.getElementById(formId);
+            form.style.display = 'block';
+            this.setToolbarPosition();
+            this.keepToolbarAlive = true;
+        },
+
+        // Method to show an extension's form
+        // TO DO: Improve this
+        hideForm: function (form, e) {
+            var el = document.getElementById(form.id);
+            el.style.display = 'none';
+            this.showToolbarActions();
+            this.setToolbarPosition();
+            restoreSelection.call(this, this.savedSelection);
         },
 
         // http://stackoverflow.com/questions/15867542/range-object-get-selection-parent-node-chrome-vs-firefox
@@ -1241,7 +1407,7 @@ else if (typeof define === 'function' && define.amd) {
             // allowing nesting, we need to use outdent
             // https://developer.mozilla.org/en-US/docs/Rich-Text_Editing_in_Mozilla
             if (el === 'blockquote' && selectionData.el &&
-                selectionData.el.parentNode.tagName.toLowerCase() === 'blockquote') {
+                    selectionData.el.parentNode.tagName.toLowerCase() === 'blockquote') {
                 return this.options.ownerDocument.execCommand('outdent', false, null);
             }
             if (selectionData.tagName === el) {
@@ -1288,11 +1454,11 @@ else if (typeof define === 'function' && define.amd) {
             return firstChild;
         },
 
-        isToolbarShown: function() {
+        isToolbarShown: function () {
             return this.toolbar && this.toolbar.classList.contains('medium-editor-toolbar-active');
         },
 
-        showToolbar: function() {
+        showToolbar: function () {
             if (this.toolbar && !this.isToolbarShown()) {
                 this.toolbar.classList.add('medium-editor-toolbar-active');
                 if (this.onShowToolbar) {
@@ -1301,7 +1467,7 @@ else if (typeof define === 'function' && define.amd) {
             }
         },
 
-        hideToolbar: function() {
+        hideToolbar: function () {
             if (this.isToolbarShown()) {
                 this.toolbar.classList.remove('medium-editor-toolbar-active');
                 if (this.onHideToolbar) {
@@ -1329,11 +1495,11 @@ else if (typeof define === 'function' && define.amd) {
             });
         },
 
-        saveSelection: function() {
+        saveSelection: function () {
             this.savedSelection = saveSelection.call(this);
         },
 
-        restoreSelection: function() {
+        restoreSelection: function () {
             restoreSelection.call(this, this.savedSelection);
         },
 
@@ -1356,8 +1522,8 @@ else if (typeof define === 'function' && define.amd) {
                 return this;
             }
 
-            var linkCancel = this.anchorForm.querySelector('a.medium-editor-toobar-anchor-close'),
-                linkSave = this.anchorForm.querySelector('a.medium-editor-toobar-anchor-save'),
+            var linkCancel = this.anchorForm.querySelector('a.medium-editor-toobar-close'),
+                linkSave = this.anchorForm.querySelector('a.medium-editor-toobar-save'),
                 self = this;
 
             this.on(this.anchorForm, 'click', function (e) {
@@ -1373,8 +1539,7 @@ else if (typeof define === 'function' && define.amd) {
                     e.preventDefault();
                     if (self.options.anchorTarget && self.anchorTarget.checked) {
                         target = "_blank";
-                    }
-                    else {
+                    } else {
                         target = "_self";
                     }
 
@@ -1383,22 +1548,20 @@ else if (typeof define === 'function' && define.amd) {
                     }
 
                     self.createLink(this, target, button);
-                }
-                else if (e.keyCode === 27) {
+                } else if (e.keyCode === 27) {
                     e.preventDefault();
                     self.showToolbarActions();
                     restoreSelection.call(self, self.savedSelection);
                 }
             });
 
-            this.on(linkSave, 'click', function(e) {
+            this.on(linkSave, 'click', function (e) {
                 var button = null,
                     target;
                 e.preventDefault();
-                if ( self.options.anchorTarget && self.anchorTarget.checked) {
+                if (self.options.anchorTarget && self.anchorTarget.checked) {
                     target = "_blank";
-                }
-                else {
+                } else {
                     target = "_self";
                 }
 
@@ -1437,7 +1600,6 @@ else if (typeof define === 'function' && define.amd) {
             return this;
         },
 
-
         hideAnchorPreview: function () {
             this.anchorPreview.classList.remove('medium-editor-anchor-preview-active');
         },
@@ -1445,7 +1607,7 @@ else if (typeof define === 'function' && define.amd) {
         // TODO: break method
         showAnchorPreview: function (anchorEl) {
             if (this.anchorPreview.classList.contains('medium-editor-anchor-preview-active')
-                || anchorEl.getAttribute('data-disable-preview')) {
+                    || anchorEl.getAttribute('data-disable-preview')) {
                 return true;
             }
 
@@ -1634,7 +1796,8 @@ else if (typeof define === 'function' && define.amd) {
         setButtonClass: function (buttonClass) {
             var el = getSelectionStart.call(this),
                 classes = buttonClass.split(' '),
-                i, j;
+                i,
+                j;
             if (el.tagName.toLowerCase() === 'a') {
                 for (j = 0; j < classes.length; j += 1) {
                     el.classList.add(classes[j]);
@@ -1686,7 +1849,7 @@ else if (typeof define === 'function' && define.amd) {
             input.value = '';
         },
 
-        positionToolbarIfShown: function() {
+        positionToolbarIfShown: function () {
             if (this.isToolbarShown()) {
                 this.setToolbarPosition();
             }
@@ -1696,14 +1859,14 @@ else if (typeof define === 'function' && define.amd) {
             var self = this;
 
             // Add a scroll event for sticky toolbar
-            if ( this.options.staticToolbar && this.options.stickyToolbar ) {
+            if (this.options.staticToolbar && this.options.stickyToolbar) {
                 // On scroll, re-position the toolbar
-                this.on(this.options.contentWindow, 'scroll', function() {
+                this.on(this.options.contentWindow, 'scroll', function () {
                     self.positionToolbarIfShown();
                 }, true);
             }
 
-            this.on(this.options.contentWindow, 'resize', function() {
+            this.on(this.options.contentWindow, 'resize', function () {
                 self.handleResize();
             });
             return this;
@@ -1803,7 +1966,7 @@ else if (typeof define === 'function' && define.amd) {
 
         setPlaceholders: function () {
             if (!this.options.disablePlaceholders && this.elements && this.elements.length) {
-                this.elements.forEach(function(el) {
+                this.elements.forEach(function (el) {
                     this.activatePlaceholder(el);
                     this.on(el, 'blur', this.placeholderWrapper.bind(this));
                     this.on(el, 'keypress', this.placeholderWrapper.bind(this));
@@ -1873,8 +2036,8 @@ else if (typeof define === 'function' && define.amd) {
 
                     switch (workEl.tagName.toLowerCase()) {
                     case 'a':
-                        if (this.options.targetBlank){
-                          this.setTargetBlank(workEl);
+                        if (this.options.targetBlank) {
+                            this.setTargetBlank(workEl);
                         }
                         break;
                     case 'p':
