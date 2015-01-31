@@ -12,41 +12,34 @@ module.exports = function (grunt) {
             pkg: grunt.file.readJSON('package.json'),
             globalConfig: globalConfig
         },
-        browsers = [
-          {
+        browsers = [{
             browserName: "internet explorer",
             version: "11",
             platform: "WIN8.1"
-          },
-          {
+        }, {
             browserName: "chrome",
             platform: "WIN8.1"
-          },
-          {
+        }, {
             browserName: "firefox",
             platform: "WIN8.1"
-          },
-          {
+        }, {
             browserName: "safari",
             platform: "mac"
-          },
-          {
+        }, {
             browserName: "firefox",
             platform: "mac"
-          },
-          {
+        }, {
             browserName: "googlechrome",
             platform: "mac"
-          }
-        ];
+        }];
 
     gruntConfig.connect = {
-      server: {
-        options: {
-          base: '',
-          port: 9999
+        server: {
+            options: {
+                base: '',
+                port: 9999
+            }
         }
-      }
     };
 
     gruntConfig.jslint = {
@@ -208,15 +201,15 @@ module.exports = function (grunt) {
     };
 
     gruntConfig['saucelabs-jasmine'] = {
-      all: {
-        options: {
-          urls: ['http://127.0.0.1:9999/_SpecRunner.html'],
-          tunnelTimeout: 5,
-          build: process.env.TRAVIS_JOB_ID,
-          concurrency: 3,
-          browsers: browsers
+        all: {
+            options: {
+                urls: ['http://127.0.0.1:9999/_SpecRunner.html'],
+                tunnelTimeout: 5,
+                build: process.env.TRAVIS_JOB_ID,
+                concurrency: 3,
+                browsers: browsers
+            }
         }
-      }
     };
 
     grunt.initConfig(gruntConfig);
