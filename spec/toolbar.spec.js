@@ -1,6 +1,7 @@
 /*global MediumEditor, describe, it, expect, spyOn,
          afterEach, beforeEach, selectElementContents, runs,
-         fireEvent, waitsFor, tearDown, xit, jasmine */
+         fireEvent, waitsFor, tearDown, xit, jasmine,
+         selectElementContentsAndFire */
 
 describe('Toolbar TestCase', function () {
     'use strict';
@@ -44,9 +45,8 @@ describe('Toolbar TestCase', function () {
             spyOn(editor, 'onShowToolbar').and.callThrough();
             jasmine.clock().install();
             try {
-                selectElementContents(this.el);
-                editor.checkSelection();
-                jasmine.clock().tick(501);
+                selectElementContentsAndFire(this.el);
+                jasmine.clock().tick(51);
                 expect(editor.toolbar.classList.contains('medium-editor-toolbar-active')).toBe(true);
                 expect(editor.onShowToolbar).toHaveBeenCalled();
             } finally {
@@ -68,6 +68,56 @@ describe('Toolbar TestCase', function () {
                 disableAnchorForm: true
             });
             expect(editor.toolbarFormAnchor).not.toHaveBeenCalled();
+        });
+    });
+
+    describe('Toolbars', function () {
+        beforeEach(function () {
+            jasmine.clock().install();
+        });
+
+        afterEach(function () {
+            jasmine.clock().uninstall();
+        });
+
+        it('should enable bold button in toolbar when bold text is selected', function () {
+            var editor = null,
+                newElement = document.createElement('div');
+
+            newElement.id = 'editor-for-toolbar-test';
+            newElement.innerHTML = 'lorem ipsum <b><div id="bold_dolorOne">dolor</div></b>';
+            document.body.appendChild(newElement);
+
+            editor = new MediumEditor(document.getElementById('editor-for-toolbar-test'), { delay: 0 });
+            editor.showTrace();
+            selectElementContentsAndFire(document.getElementById('bold_dolorOne'));
+            selectElementContents(document.getElementById('bold_dolorOne'));
+
+            jasmine.clock().tick(51);
+            expect(editor.toolbar.querySelector('button[data-action="bold"]').classList.contains('medium-editor-button-active')).toBe(true);
+            editor.hideTrace();
+            editor.deactivate();
+            tearDown(newElement);
+        });
+
+        it('should not activate buttons in toolbar when stopSelectionUpdates has been called, but should activate buttons after startSelectionUpdates is called', function () {
+            var editor = null;
+
+            this.el.innerHTML = 'lorem ipsum <b><div id="bold_dolorTwo">dolor</div></b>';
+
+            editor = new MediumEditor(document.querySelectorAll('.editor'), { delay: 0 });
+
+            editor.stopSelectionUpdates();
+            selectElementContentsAndFire(document.getElementById('bold_dolorTwo'));
+
+            jasmine.clock().tick(51);
+            expect(editor.toolbar.querySelector('button[data-action="bold"]').classList.contains('medium-editor-button-active')).toBe(false);
+
+            editor.startSelectionUpdates();
+            selectElementContentsAndFire(document.getElementById('bold_dolorTwo'));
+
+            jasmine.clock().tick(51);
+            expect(editor.toolbar.querySelector('button[data-action="bold"]').classList.contains('medium-editor-button-active')).toBe(true);
         });
     });
 
@@ -120,8 +170,9 @@ describe('Toolbar TestCase', function () {
 
             expect(editor.elements.length).toEqual(2);
             expect(editor.toolbar.style.display).toBe('');
-            selectElementContents(element);
-            editor.checkSelection();
+            selectElementContentsAndFire(element);
+            jasmine.clock().tick(51);
+
             expect(editor.toolbar.style.display).toBe('');
             // Remove the new element from the DOM
             document.body.removeChild(element);
@@ -137,46 +188,10 @@ describe('Toolbar TestCase', function () {
 
             editor = new MediumEditor(document.querySelectorAll('.editor'), { delay: 0 });
 
-            selectElementContents(document.getElementById('cef_el'));
-            editor.checkSelection();
+            selectElementContentsAndFire(document.getElementById('cef_el'));
 
             jasmine.clock().tick(51);
             expect(editor.toolbar.classList.contains('medium-editor-toolbar-active')).toBe(false);
-        });
-
-        it('should enable bold button in toolbar when bold text is selected', function () {
-            var editor = null;
-
-            this.el.innerHTML = 'lorem ipsum <b><div id="cef_el">dolor</div></b>';
-
-            editor = new MediumEditor(document.querySelectorAll('.editor'), { delay: 0 });
-
-            selectElementContents(document.getElementById('cef_el'));
-            editor.checkSelection();
-
-            jasmine.clock().tick(51);
-            expect(editor.toolbar.querySelector('button[data-action="bold"]').classList.contains('medium-editor-button-active')).toBe(true);
-        });
-
-        it('should not activate buttons in toolbar when stopSelectionUpdates has been called, but should activate buttons after startSelectionUpdates is called', function () {
-            var editor = null;
-
-            this.el.innerHTML = 'lorem ipsum <b><div id="cef_el">dolor</div></b>';
-
-            editor = new MediumEditor(document.querySelectorAll('.editor'), { delay: 0 });
-
-            selectElementContents(document.getElementById('cef_el'));
-            editor.stopSelectionUpdates();
-            editor.checkSelection();
-
-            jasmine.clock().tick(51);
-            expect(editor.toolbar.querySelector('button[data-action="bold"]').classList.contains('medium-editor-button-active')).toBe(false);
-
-            editor.startSelectionUpdates();
-            editor.checkSelection();
-
-            jasmine.clock().tick(51);
-            expect(editor.toolbar.querySelector('button[data-action="bold"]').classList.contains('medium-editor-button-active')).toBe(true);
         });
 
         it('should call onHideToolbar when toolbar is hidden', function () {
@@ -202,8 +217,7 @@ describe('Toolbar TestCase', function () {
             editorOne = new MediumEditor('.editor', { updateOnEmptySelection: true, delay: 0, staticToolbar: true });
             editorTwo = new MediumEditor('#editor-div-two', { updateOnEmptySelection: true, delay: 0, staticToolbar: true });
 
-            selectElementContents(document.getElementById('editor-span-1'));
-            fireEvent(editorOne.elements[0], 'focus');
+            selectElementContentsAndFire(document.getElementById('editor-span-1'));
 
             jasmine.clock().tick(51);
 
@@ -211,8 +225,7 @@ describe('Toolbar TestCase', function () {
             expect(editorTwo.toolbar.classList.contains('medium-editor-toolbar-active')).toBe(false);
 
             fireEvent(editorOne.elements[0], 'blur');
-            selectElementContents(document.getElementById('editor-span-2'));
-            fireEvent(editorTwo.elements[0], 'focus');
+            selectElementContentsAndFire(document.getElementById('editor-span-2'), { eventToFire: 'focus' });
 
             jasmine.clock().tick(51);
 
@@ -243,7 +256,7 @@ describe('Toolbar TestCase', function () {
                 }, 500);
             });
 
-            // Because the toolbar appear after 100ms, waits 150ms... 
+            // Because the toolbar appear after 100ms, waits 150ms...
             waitsFor(function () {
                 value = value + 1; // value += 1 is not accepted by jslint (unused)
                 return flag;
